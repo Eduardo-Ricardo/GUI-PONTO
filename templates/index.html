@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GUI-PONTO</title>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #172033; background: #f4f6f8; }
+    body { max-width: 1180px; margin: 0 auto; padding: 28px 18px; }
+    h1 { margin-bottom: 4px; } .subtitle { color: #5d6878; margin-top: 0; }
+    .panel, .employee { background: white; border-radius: 10px; padding: 18px; margin: 16px 0; box-shadow: 0 2px 8px #17203314; }
+    form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    button { border: 0; border-radius: 6px; background: #2459a6; color: white; padding: 10px 16px; cursor: pointer; }
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+    .card { background: #eef3fb; padding: 12px; border-radius: 7px; } .card strong { display: block; font-size: 1.3rem; margin-top: 4px; }
+    .positive { color: #137333; } .negative { color: #b3261e; }
+    .calendar-wrap { overflow-x: auto; padding-bottom: 8px; }
+    .calendar-head, .heatmap { display: grid; grid-template-columns: repeat(7, minmax(142px, 1fr)); gap: 6px; margin: 14px 0; min-width: 1020px; }
+    .calendar-head { margin-bottom: 5px; color: #536174; font-size: .82rem; font-weight: bold; text-align: center; }
+    .heat { min-height: 212px; border-radius: 8px; padding: 9px; border: 1px solid #d9e0e8; overflow: hidden; }
+    .heat-0 { background: #d9f2df; } .heat-1 { background: #fff4c2; }
+    .heat-2 { background: #ffc98f; } .heat-3 { background: #f39a9a; }
+    .heat.empty { background: #f5f6f7; color: #87909d; }
+    .heat.weekend, .heat.holiday { border: 2px solid #8090a3; }
+    .heat.holiday { box-shadow: inset 0 0 0 2px #c9d2dd; }
+    .heat small { display: block; margin-top: 4px; font-size: .73rem; line-height: 1.2; }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; color: #536174; font-size: .85rem; }
+    .legend span { padding: 5px 8px; border-radius: 5px; }
+    .edit-form { display: grid; grid-template-columns: 1fr 1fr 2fr auto; gap: 6px; margin-top: 8px; }
+    .cell-editor { display: grid; gap: 3px; margin-top: 5px; }
+    .cell-editor input { width: 100%; box-sizing: border-box; font-size: .72rem; padding: 4px; }
+    .cell-editor button { padding: 5px; font-size: .72rem; }
+    .punch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .punch-grid label { font-size: .65rem; color: #536174; }
+    input { border: 1px solid #cbd3df; border-radius: 5px; padding: 8px; }
+    .success { background: #e1f3e5; color: #176b2c; padding: 10px; border-radius: 6px; }
+    .filter { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+    .day-content { display: flex; flex-direction: column; height: 100%; }
+    .day-half { flex: 1; min-height: 34px; }
+    .morning-section { margin: 9px 0 10px; padding: 7px 0 8px; }
+    .morning-title { display: flex; justify-content: space-between; align-items: center; font-size: .7rem; font-weight: bold; color: #39485b; }
+    .morning-value { font-size: .76rem; color: #172033; }
+    .morning-bar { height: 14px; background: #238b4e; border-radius: 7px; box-shadow: 0 1px 2px #17203355; transition: width .2s ease; }
+    .morning-bar.low { background: #c62828; }
+    .morning-bar.medium { background: #e68a00; }
+    .morning-track { height: 14px; background: #d4dbe3; border: 1px solid #98a6b5; border-radius: 8px; margin: 5px 0 3px; overflow: hidden; }
+    .morning-scale { display: flex; justify-content: space-between; color: #637286; font-size: .64rem; }
+    .punch-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 6px; margin-top: 5px; font-size: .72rem; }
+    .punch-summary span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .punch-summary b { color: #172033; font-weight: normal; }
+    .day-bottom { padding-top: 3px; margin-top: auto; }
+    .schedule-note { background: #eef3fb; border-left: 4px solid #2459a6; padding: 10px 12px; margin: 10px 0; border-radius: 5px; }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; } th, td { padding: 7px; border-bottom: 1px solid #e3e7ed; text-align: left; }
+    th { color: #536174; } .notice { padding: 10px; border-radius: 6px; background: #fff2cc; color: #795600; }
+    .error { background: #fde7e9; color: #a50e0e; padding: 10px; border-radius: 6px; }
+    @media (max-width: 700px) { .cards { grid-template-columns: 1fr 1fr; } .edit-form { grid-template-columns: 1fr; } table { font-size: .8rem; } }
+  </style>
+</head>
+<body>
+  <h1>GUI-PONTO</h1>
+  <p class="subtitle">Horas trabalhadas e saldo em relação à jornada regular de 08:00 por dia útil.</p>
+  <section class="panel">
+    <form method="post" enctype="multipart/form-data">
+      <input type="file" name="report" accept=".xls,.xml" required>
+      <button type="submit">Processar relatório</button>
+    </form>
+    <form class="filter" method="get">
+      <label for="employee">Funcionário:</label>
+      <select id="employee" name="employee">
+        <option value="all" {{ 'selected' if selected_id == 'all' }}>Todos</option>
+        {% for employee in all_employees if employee.eligible %}
+          <option value="{{ employee.employee_id }}" {{ 'selected' if selected_id == employee.employee_id }}>{{ employee.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Filtrar</button>
+    </form>
+    <p>Os dados calculados vêm de <strong>ponto_dados.csv</strong>. A edição na grade atualiza esse CSV.</p>
+    {% if filename %}<p>Arquivo processado: <strong>{{ filename }}</strong></p>{% endif %}
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% if excluded_count %}<p class="notice">{{ excluded_count }} pessoa(s) removida(s) da visualização por trabalhar até 50% da carga útil mensal.</p>{% endif %}
+  </section>
+  {% for employee in employees %}
+    <section class="employee">
+      <h2>{{ employee.name or "Sem nome" }} <small>({{ employee.employee_id }})</small></h2>
+      <div>{{ employee.department }}</div>
+      <div class="cards">
+        <div class="card">Horas apontadas<strong>{{ employee.worked_minutes|minutes }}</strong></div>
+        <div class="card">Horas previstas<strong>{{ employee.expected_minutes|minutes }}</strong></div>
+        <div class="card">Saldo<strong class="{{ 'positive' if employee.balance_minutes >= 0 else 'negative' }}">{{ employee.balance_minutes|minutes }}</strong></div>
+        <div class="card">Aproveitamento<strong>{{ (employee.attendance_ratio * 100)|round(1) }}%</strong></div>
+      </div>
+      <div class="schedule-note"><strong>Jornada usada no cálculo:</strong> 08:00–12:00 e 13:00–17:00 = <strong>8 horas trabalhadas</strong>. O intervalo de 12:00–13:00 não conta como hora trabalhada.</div>
+      <h3>Mapa de calor — desvio das batidas nominais</h3>
+      <p>Referência: <strong>08:00 / 12:00 / 13:00 / 18:00</strong>. A cor compara cada dia com a média de desvios deste funcionário no mês.</p>
+      <div class="legend"><span class="heat-0">Mais próximo</span><span class="heat-1">Até a média</span><span class="heat-2">Acima da média</span><span class="heat-3">Maior desvio</span></div>
+      <div class="calendar-wrap">
+        <div class="calendar-head"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
+        <div class="heatmap">
+        {% for _ in range((employee.days[0].day.weekday() + 1) % 7) %}<div></div>{% endfor %}
+        {% for day in employee.days %}
+          <div class="heat heat-{{ day.heat_level }} {{ 'empty' if not day.marks }} {{ 'weekend' if day.day_type in ['sábado', 'domingo'] else 'holiday' if day.day_type == 'feriado' else '' }}" title="{{ day.day_label }} | Desvios: {{ day.deviations|map('deviation')|join(' / ') }}">
+            <div class="day-content">
+              <div class="day-half">
+                <strong>{{ day.day.strftime('%d/%m') }}</strong>
+                <small>{{ day.day_label }}</small>
+                <div class="morning-section">
+                  <div class="morning-title"><span>Entrada da manhã</span><span class="morning-value">{{ day.morning_percent }}%</span></div>
+                  <div class="morning-track"><div class="morning-bar {{ 'low' if day.morning_percent < 70 else 'medium' if day.morning_percent < 95 else '' }}" style="width: {{ day.morning_percent }}%"></div></div>
+                  <div class="morning-scale"><span>atrasada</span><span>08:00 ideal</span></div>
+                </div>
+              </div>
+              <div class="day-half day-bottom">
+                <div class="punch-summary">
+                  <span><b>{{ day.marks[0] if day.marks|length > 0 else '—' }}</b></span>
+                  <span><b>{{ day.marks[1] if day.marks|length > 1 else '—' }}</b></span>
+                  <span><b>{{ day.marks[2] if day.marks|length > 2 else '—' }}</b></span>
+                  <span><b>{{ day.marks[3] if day.marks|length > 3 else '—' }}</b></span>
+                </div>
+                <small>Desvio total: {{ day.deviation_minutes|round(0) }} min</small>
+              </div>
+              <details>
+                <summary>Editar célula</summary>
+                <form class="cell-editor" method="post" action="{{ url_for('edit_day') }}">
+                  <input type="hidden" name="employee_id" value="{{ employee.employee_id }}">
+                  <input type="hidden" name="day" value="{{ day.day.isoformat() }}">
+                  <div class="punch-grid">
+                    <label>Entrada<input name="entrada" value="{{ day.marks[0] if day.marks|length > 0 else '' }}" placeholder="08:00"></label>
+                    <label>Almoço<input name="almoco" value="{{ day.marks[1] if day.marks|length > 1 else '' }}" placeholder="12:00"></label>
+                    <label>Retorno<input name="retorno" value="{{ day.marks[2] if day.marks|length > 2 else '' }}" placeholder="13:00"></label>
+                    <label>Saída<input name="saida" value="{{ day.marks[3] if day.marks|length > 3 else '' }}" placeholder="18:00"></label>
+                  </div>
+                  <input name="reason" required placeholder="Motivo">
+                  <button type="submit">Salvar no CSV</button>
+                </form>
+              </details>
+            </div>
+          </div>
+        {% endfor %}
+        </div>
+      </div>
+      <details>
+        <summary>Ver detalhamento diário</summary>
+        <table>
+          <thead><tr><th>Data</th><th>Regra do dia</th><th>4 batidas</th><th>Desvio nominal</th><th>Trabalhadas</th><th>Previstas</th><th>Diferença</th><th>Auditar</th></tr></thead>
+          <tbody>
+          {% for day in employee.days %}
+            <tr>
+              <td>{{ day.day|date_br }}</td><td>{{ day.day_label }}</td><td>{{ day.marks|join(' / ') or '—' }}</td>
+              <td>{{ day.deviations|map('deviation')|join(' / ') }}</td>
+              <td>{{ day.worked_minutes|minutes }}</td><td>{{ day.expected_minutes|minutes }}</td>
+              <td class="{{ 'positive' if day.balance_minutes >= 0 else 'negative' }}">{{ day.balance_minutes|minutes }}</td>
+              <td>
+                <details><summary>Editar</summary>
+                <form class="edit-form" method="post" action="{{ url_for('edit_day') }}">
+                  <input type="hidden" name="employee_id" value="{{ employee.employee_id }}">
+                  <input type="hidden" name="day" value="{{ day.day.isoformat() }}">
+                  <input name="marks" value="{{ day.marks|join(',') }}" placeholder="08:00,12:00,13:00,18:00">
+                  <input name="reason" required placeholder="Motivo da correção">
+                  <button type="submit">Salvar auditoria</button>
+                </form>
+                {% if day.original_marks != day.marks %}<small>Original: {{ day.original_marks|join(' / ') }}</small>{% endif %}
+                {% if day.audit_reason %}<small>Motivo auditado: {{ day.audit_reason }}</small>{% endif %}
+                </details>
+              </td>
+            </tr>
+            {% if day.warning %}<tr><td colspan="8" class="notice">{{ day.warning }}</td></tr>{% endif %}
+          {% endfor %}
+          </tbody>
+        </table>
+      </details>
+    </section>
+  {% endfor %}
+</body>
+</html>

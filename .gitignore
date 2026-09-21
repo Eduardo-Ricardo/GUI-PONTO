@@ -1,0 +1,7 @@
+current_report.xls
+ponto_audit.sqlite3
+ponto_dados.csv
+*.xls
+*.xlsx
+Salarios.txt
+__pycache__/
